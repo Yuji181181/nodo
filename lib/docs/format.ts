@@ -25,7 +25,7 @@ export const blockCommands: readonly BlockCommand[] = [
   {
     id: 'paragraph',
     label: 'テキスト',
-    description: '通常の段落',
+    description: '普通のテキストを入力します。',
     shortcut: 'Ctrl+Alt+0',
     key: '0',
     code: 'Digit0',
@@ -37,7 +37,7 @@ export const blockCommands: readonly BlockCommand[] = [
   {
     id: 'h1',
     label: '見出し 1',
-    description: '大きい見出し',
+    description: '大見出しを作成します。',
     shortcut: 'Ctrl+Alt+1',
     key: '1',
     code: 'Digit1',
@@ -49,7 +49,7 @@ export const blockCommands: readonly BlockCommand[] = [
   {
     id: 'h2',
     label: '見出し 2',
-    description: '中くらいの見出し',
+    description: '中見出しを作成します。',
     shortcut: 'Ctrl+Alt+2',
     key: '2',
     code: 'Digit2',
@@ -61,7 +61,7 @@ export const blockCommands: readonly BlockCommand[] = [
   {
     id: 'h3',
     label: '見出し 3',
-    description: '小さい見出し',
+    description: '小見出しを作成します。',
     shortcut: 'Ctrl+Alt+3',
     key: '3',
     code: 'Digit3',
@@ -72,8 +72,8 @@ export const blockCommands: readonly BlockCommand[] = [
   },
   {
     id: 'bullet',
-    label: '箇条書き',
-    description: '箇条書きリスト',
+    label: '箇条書きリスト',
+    description: 'シンプルな箇条書きリストを作成します。',
     shortcut: 'Ctrl+Shift+8',
     key: '8',
     code: 'Digit8',
@@ -85,7 +85,7 @@ export const blockCommands: readonly BlockCommand[] = [
   {
     id: 'numbered',
     label: '番号付きリスト',
-    description: '番号付きリスト',
+    description: '番号付きのリストを作成します。',
     shortcut: 'Ctrl+Shift+7',
     key: '7',
     code: 'Digit7',

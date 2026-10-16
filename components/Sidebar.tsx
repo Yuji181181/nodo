@@ -1,5 +1,5 @@
-import type { PointerEvent } from 'react';
-import { countTabs, MAX_TABS, type TabNode } from '../lib/docs/tabs';
+import { useState, type PointerEvent } from 'react';
+import { type TabNode } from '../lib/docs/tabs';
 import { PageTree } from './PageTree';
 
 interface SidebarProps {
@@ -19,7 +19,6 @@ interface SidebarProps {
   onMove: (path: string, delta: number) => void;
   onToggle: (path: string) => void;
   onNotice: (message: string) => void;
-  onFormat: (anchor: DOMRect) => void;
   onToggleChrome: () => void;
   onShowNativeTabs: () => void;
   onDisable: () => void;
@@ -27,11 +26,12 @@ interface SidebarProps {
 }
 
 export function Sidebar(props: SidebarProps) {
-  const total = props.tabs ? countTabs(props.tabs) : 0;
+  const [options, setOptions] = useState(false);
+  const title = props.title || '無題';
   return (
     <aside
-      aria-label="Nodo"
-      className="pointer-events-auto absolute flex flex-col overflow-hidden border-r border-[#e6e4de] bg-[#f7f6f3] text-[#37352f]"
+      aria-label="ページ"
+      className="pointer-events-auto absolute z-10 flex flex-col overflow-hidden border-r border-white/10 bg-[#202020] text-white/90"
       style={{
         top: props.rect.top,
         left: props.rect.left,
@@ -40,48 +40,40 @@ export function Sidebar(props: SidebarProps) {
       }}
       onPointerDown={keepEditorFocus}
     >
-      <header className="flex items-start justify-between gap-2 px-3 pt-3 pb-2">
-        <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-[#8b897f]">Nodo</p>
-          <h1 className="truncate text-sm font-semibold">{props.title || '無題のドキュメント'}</h1>
-        </div>
+      <header className="flex items-center gap-2 px-2 pt-2 pb-1">
+        <span className="grid h-5 w-5 shrink-0 place-items-center rounded bg-[#3a3a3a] text-[11px] text-white/80">
+          {title.slice(0, 1)}
+        </span>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-medium">{title}</h1>
         <button
           type="button"
-          className="shrink-0 rounded-md px-2 py-1 text-xs text-[#5f5d57] hover:bg-[#efeee9]"
-          onClick={props.onDisable}
+          aria-label="表示の設定"
+          aria-expanded={options}
+          className="grid h-6 w-6 shrink-0 place-items-center rounded text-white/50 hover:bg-white/8 hover:text-white/80"
+          onClick={() => setOptions((open) => !open)}
         >
-          標準表示
+          ···
         </button>
       </header>
-
-      {props.viewOnly ? (
-        <p className="mx-3 mb-2 rounded-lg bg-[#efeee9] px-2.5 py-2 text-xs leading-5 text-[#5f5d57]">
-          閲覧または提案モードです。ページの変更は、編集できる文書で使えます。
-        </p>
+      {options ? (
+        <div role="menu" className="mx-2 mb-1 rounded-md bg-[#2a2a2a] p-1 text-sm shadow-lg">
+          <Option label="標準表示" onClick={() => { setOptions(false); props.onDisable(); }} />
+          <Option
+            label={props.showChrome ? 'Googleのメニューを隠す' : 'Googleのメニューを表示'}
+            onClick={() => { setOptions(false); props.onToggleChrome(); }}
+          />
+          <Option label="元のタブ欄" onClick={() => { setOptions(false); props.onShowNativeTabs(); }} />
+        </div>
       ) : null}
-      {props.notice ? (
-        <p className="mx-3 mb-2 rounded-lg bg-white px-2.5 py-2 text-xs leading-5 text-[#5f5d57] shadow-sm">
-          {props.notice}
-        </p>
-      ) : null}
 
-      <div className="flex items-center justify-between px-3 pt-1 pb-1">
-        <h2 className="text-xs font-medium text-[#8b897f]">ページ</h2>
-        <span className="text-[11px] text-[#a8a69d]">
-          {total}/{MAX_TABS}
-        </span>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-2">
+        <h2 className="px-2 pt-3 pb-1 text-xs text-white/45">ページ</h2>
         {props.tabs === null ? (
-          <p className="px-2 py-3 text-sm text-[#8b897f]">ページを読み込んでいます</p>
+          <p className="px-2 py-2 text-sm text-white/45">読み込み中</p>
         ) : props.tabs.length === 0 ? (
-          <div className="px-2 py-3 text-sm leading-6 text-[#5f5d57]">
-            <p>タブ一覧を読み取れませんでした。</p>
-            <p className="mt-1 text-xs text-[#8b897f]">
-              Google ドキュメントの画面が変わった可能性があります。元のタブ欄を表示して操作を続けられます。
-            </p>
-          </div>
+          <p className="px-2 py-2 text-sm leading-5 text-white/55">
+            タブ一覧を読み取れませんでした。表示の設定から元のタブ欄を開けます。
+          </p>
         ) : (
           <PageTree
             tabs={props.tabs}
@@ -96,45 +88,37 @@ export function Sidebar(props: SidebarProps) {
             onNotice={props.onNotice}
           />
         )}
-      </div>
-
-      <div className="border-t border-[#e6e4de] p-2">
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#efeee9] disabled:cursor-not-allowed disabled:text-[#b8b6ae]"
-          disabled={props.addDisabled || props.busy || total >= MAX_TABS}
+          className="mt-0.5 flex h-[30px] w-full items-center gap-2 rounded px-2 text-left text-sm text-white/45 hover:bg-white/6 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          disabled={props.addDisabled || props.busy}
           onClick={props.onAddRoot}
         >
-          <span aria-hidden="true">＋</span>
-          新しいページ
+          <PlusIcon />
+          新規ページを追加
         </button>
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#efeee9]"
-          onClick={(event) => props.onFormat(event.currentTarget.getBoundingClientRect())}
-        >
-          <span aria-hidden="true">¶</span>
-          現在の段落の書式
-        </button>
-        <button
-          type="button"
-          aria-pressed={props.showChrome}
-          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#efeee9]"
-          onClick={props.onToggleChrome}
-        >
-          Googleのメニュー
-          <span className="text-xs text-[#8b897f]">{props.showChrome ? '表示中' : '隠す'}</span>
-        </button>
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#efeee9]"
-          onClick={props.onShowNativeTabs}
-        >
-          元のタブ欄
-          <span className="text-xs text-[#8b897f]">表示</span>
-        </button>
+        {props.viewOnly ? (
+          <p className="px-2 pt-2 text-xs leading-5 text-white/35">閲覧中はページを変更できません。</p>
+        ) : null}
       </div>
+
+      {props.notice ? (
+        <p className="mx-2 mb-2 rounded-md bg-[#2a2a2a] px-2 py-1.5 text-xs leading-5 text-white/70">{props.notice}</p>
+      ) : null}
     </aside>
+  );
+}
+
+function Option({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      className="block w-full rounded px-2 py-1.5 text-left text-white/85 hover:bg-white/8"
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -142,4 +126,12 @@ export function keepEditorFocus(event: PointerEvent) {
   const target = event.target;
   if (target instanceof Element && target.closest('[data-allow-focus]')) return;
   event.preventDefault();
+}
+
+export function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" className="shrink-0">
+      <path d="M7 2.5 V11.5 M2.5 7 H11.5" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
 }

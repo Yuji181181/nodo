@@ -18,7 +18,7 @@ interface PageTreeProps {
 export function PageTree(props: PageTreeProps) {
   const dragPath = useRef<string | null>(null);
   return (
-    <div role="tree" aria-label="ページ" className="flex flex-col gap-0.5">
+    <div role="tree" aria-label="ページ" className="flex flex-col">
       {props.tabs.map((node) => (
         <PageRow key={node.path} node={node} depth={0} dragPath={dragPath} {...props} />
       ))}
@@ -70,10 +70,19 @@ function PageRow({
         aria-selected={node.selected}
         aria-level={depth + 1}
         aria-expanded={node.childToggle === 'none' ? undefined : node.childToggle === 'expanded'}
-        className={`group relative flex min-h-8 items-center gap-1 rounded-md pr-1 ${
-          node.selected ? 'bg-white shadow-[0_1px_2px_rgba(55,53,47,0.08)]' : 'hover:bg-[#efeee9]'
+        draggable={!editing}
+        className={`group flex h-[30px] items-center rounded pr-1 text-sm text-white/90 ${
+          node.selected ? 'bg-white/10' : 'hover:bg-white/6'
         }`}
-        style={{ paddingLeft: 6 + depth * 14 }}
+        style={{ paddingLeft: 4 + depth * 14 }}
+        onDragStart={(event) => {
+          dragPath.current = node.path;
+          event.dataTransfer.setData('text/plain', node.path);
+          event.dataTransfer.effectAllowed = 'move';
+        }}
+        onDragEnd={() => {
+          dragPath.current = null;
+        }}
         onDragOver={(event) => {
           const source = dragPath.current;
           if (!source || parentPath(source) !== parentPath(node.path)) return;
@@ -89,34 +98,17 @@ function PageRow({
         ) : (
           <button
             type="button"
-            className="grid h-5 w-4 shrink-0 place-items-center rounded text-[#8b897f] hover:bg-[#e7e5e1]"
+            className="grid h-5 w-4 shrink-0 place-items-center rounded text-white/45 hover:bg-white/10"
             aria-label={node.childToggle === 'expanded' ? '子ページを閉じる' : '子ページを開く'}
             onClick={() => props.onToggle(node.path)}
           >
             <Chevron open={node.childToggle === 'expanded'} />
           </button>
         )}
-        <button
-          type="button"
-          draggable
-          data-allow-focus="true"
-          aria-label={`${node.title}を並べ替える`}
-          className="grid h-5 w-3 shrink-0 cursor-grab place-items-center text-[#c6c4bc] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-          onDragStart={(event) => {
-            dragPath.current = node.path;
-            event.dataTransfer.setData('text/plain', node.path);
-            event.dataTransfer.effectAllowed = 'move';
-          }}
-          onDragEnd={() => {
-            dragPath.current = null;
-          }}
-        >
-          <Grip />
-        </button>
         {editing ? (
           <input
             data-allow-focus="true"
-            className="min-w-0 flex-1 rounded border border-[#d8d6cf] bg-white px-1.5 py-0.5 text-sm text-[#37352f] outline-none"
+            className="min-w-0 flex-1 rounded bg-[#191919] px-1 py-0.5 text-sm text-white outline-none"
             value={draft}
             aria-label="ページ名"
             autoFocus
@@ -136,56 +128,63 @@ function PageRow({
         ) : (
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-1.5 rounded py-1 text-left text-sm text-[#37352f]"
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
             onClick={() => props.onSelect(node.path)}
             onDoubleClick={() => {
               setDraft(node.title);
               setEditing(true);
             }}
           >
-            <span className="w-4 shrink-0 text-center text-xs" aria-hidden="true">
-              {node.emoji || '📄'}
-            </span>
+            <PageIcon emoji={node.emoji} />
             <span className="truncate">{node.title}</span>
           </button>
         )}
-        <button
-          type="button"
-          aria-label={`${node.title}の操作`}
-          aria-expanded={menuAt !== null}
-          className={`grid h-6 w-6 shrink-0 place-items-center rounded text-[#8b897f] hover:bg-[#e7e5e1] focus-visible:opacity-100 ${
-            node.selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          }`}
-          onClick={(event) => {
-            const box = event.currentTarget.getBoundingClientRect();
-            setMenuAt((current) => (current ? null : { x: box.right - 176, y: box.bottom + 4 }));
-          }}
-        >
-          ···
-        </button>
+        <span className={`flex shrink-0 items-center ${menuAt ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}>
+          <button
+            type="button"
+            aria-label={`${node.title}の子ページを追加`}
+            disabled={!canNestUnder(node.level) || props.busy}
+            className="grid h-5 w-5 place-items-center rounded text-white/55 hover:bg-white/10 disabled:text-white/20"
+            onClick={() => props.onAddChild(node.path)}
+          >
+            <PlusMark />
+          </button>
+          <button
+            type="button"
+            aria-label={`${node.title}の操作`}
+            aria-expanded={menuAt !== null}
+            className="grid h-5 w-5 place-items-center rounded text-sm text-white/55 hover:bg-white/10"
+            onClick={(event) => {
+              const box = event.currentTarget.getBoundingClientRect();
+              setMenuAt((current) => (current ? null : { x: box.right - 180, y: box.bottom + 4 }));
+            }}
+          >
+            ···
+          </button>
+        </span>
         {menuAt ? (
           <div
             role="menu"
-            className="fixed z-20 w-44 rounded-lg border border-[#e6e4de] bg-white p-1 text-sm shadow-lg"
+            className="fixed z-30 w-44 rounded-md border border-white/10 bg-[#252525] p-1 text-sm text-white/90 shadow-xl"
             style={{ left: Math.max(8, menuAt.x), top: menuAt.y }}
           >
             <MenuButton label="名前を変更" onClick={() => { setMenuAt(null); setDraft(node.title); setEditing(true); }} />
             <MenuButton label="子ページを追加" disabled={!canNestUnder(node.level) || props.busy} onClick={() => { setMenuAt(null); props.onAddChild(node.path); }} />
-            <MenuButton label="上へ" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, -1); }} />
-            <MenuButton label="下へ" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, 1); }} />
+            <MenuButton label="上に移動" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, -1); }} />
+            <MenuButton label="下に移動" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, 1); }} />
             <MenuButton label="複製" disabled={props.busy} onClick={() => { setMenuAt(null); props.onDuplicate(node.path); }} />
-            <MenuButton label="削除" disabled={props.busy} onClick={() => { setMenuAt(null); setConfirmingDelete(true); }} />
+            <MenuButton label="削除" danger disabled={props.busy} onClick={() => { setMenuAt(null); setConfirmingDelete(true); }} />
           </div>
         ) : null}
       </div>
       {confirmingDelete ? (
-        <div className="mx-2 my-1 rounded-lg border border-[#f0d2cf] bg-[#fff7f6] p-2 text-xs text-[#6d3b37]">
-          <p>「{node.title}」を Google ドキュメントから削除します。</p>
+        <div className="mx-2 my-1 rounded-md bg-[#3a2424] p-2 text-xs text-[#f0c9c6]">
+          <p>「{node.title}」を削除します。</p>
           <div className="mt-2 flex gap-2">
-            <button type="button" className="rounded-md bg-[#c4554d] px-2 py-1 text-white" onClick={() => { setConfirmingDelete(false); props.onDelete(node.path); }}>
-              削除する
+            <button type="button" className="rounded bg-[#c4554d] px-2 py-1 text-white" onClick={() => { setConfirmingDelete(false); props.onDelete(node.path); }}>
+              削除
             </button>
-            <button type="button" className="rounded-md px-2 py-1" onClick={() => setConfirmingDelete(false)}>
+            <button type="button" className="rounded px-2 py-1 text-white/70" onClick={() => setConfirmingDelete(false)}>
               キャンセル
             </button>
           </div>
@@ -203,10 +202,12 @@ function PageRow({
 function MenuButton({
   label,
   disabled,
+  danger,
   onClick,
 }: {
   label: string;
   disabled?: boolean;
+  danger?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -214,11 +215,36 @@ function MenuButton({
       type="button"
       role="menuitem"
       disabled={disabled}
-      className="block w-full rounded-md px-2 py-1.5 text-left hover:bg-[#f7f6f3] disabled:cursor-not-allowed disabled:text-[#b8b6ae]"
+      className={`block w-full rounded px-2 py-1.5 text-left hover:bg-white/8 disabled:cursor-not-allowed disabled:text-white/25 ${
+        danger ? 'text-[#ff7369]' : ''
+      }`}
       onClick={onClick}
     >
       {label}
     </button>
+  );
+}
+
+function PlusMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M7 2.5 V11.5 M2.5 7 H11.5" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function PageIcon({ emoji }: { emoji: string }) {
+  if (emoji) return <span className="w-4 shrink-0 text-center text-xs">{emoji}</span>;
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0 text-white/55">
+      <path
+        d="M4 2.5 H9.2 L12 5.3 V13.5 H4 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <path d="M9 2.8 V5.4 H11.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
   );
 }
 
@@ -236,20 +262,7 @@ function siblingNodes(nodes: readonly TabNode[], path: string): readonly TabNode
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" className={open ? 'rotate-90' : ''}>
-      <path d="M3 2 L7 5 L3 8" fill="none" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  );
-}
-
-function Grip() {
-  return (
-    <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true">
-      <circle cx="2" cy="2" r="1" fill="currentColor" />
-      <circle cx="6" cy="2" r="1" fill="currentColor" />
-      <circle cx="2" cy="6" r="1" fill="currentColor" />
-      <circle cx="6" cy="6" r="1" fill="currentColor" />
-      <circle cx="2" cy="10" r="1" fill="currentColor" />
-      <circle cx="6" cy="10" r="1" fill="currentColor" />
+      <path d="M3.2 2.2 L6.8 5 L3.2 7.8" fill="none" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   );
 }

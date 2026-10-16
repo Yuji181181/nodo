@@ -141,12 +141,12 @@ export function App() {
   }
 
   const sidebarRight = rect.left + rect.width;
-  const plus =
+  const handle =
     caret === null
       ? null
       : {
-          left: Math.min(Math.max(sidebarRight + 12, caret.pageLeft - 36), window.innerWidth - 44),
-          top: Math.min(Math.max(8, caret.y + caret.height / 2 - 14), window.innerHeight - 44),
+          left: Math.min(Math.max(sidebarRight + 4, caret.pageLeft - 54), window.innerWidth - 60),
+          top: Math.min(Math.max(8, caret.y + caret.height / 2 - 12), window.innerHeight - 28),
         };
 
   return (
@@ -170,7 +170,6 @@ export function App() {
           onMove={(path, delta) => void run(() => moveTab(path, delta))}
           onToggle={(path) => toggleChildTabs(path)}
           onNotice={setNotice}
-          onFormat={(anchor) => setFormatAt({ x: anchor.left, y: anchor.bottom + 6 })}
           onToggleChrome={() => void update({ showChrome: !settings.showChrome })}
           onShowNativeTabs={() => void update({ showNativeTabs: true })}
           onDisable={() => void update({ enabled: false })}
@@ -188,24 +187,46 @@ export function App() {
         </button>
       )}
 
-      {settings.enabled && plus ? (
-        <button
-          type="button"
-          aria-label="書式を選ぶ"
-          aria-haspopup="menu"
-          className="pointer-events-auto absolute grid h-7 w-7 place-items-center rounded-md border border-[#e6e4de] bg-white text-lg leading-none text-[#37352f] shadow-sm hover:bg-[#f7f6f3]"
-          style={{ left: plus.left, top: plus.top }}
+      {settings.enabled && handle ? (
+        <div
+          className="pointer-events-auto absolute z-20 flex items-center text-[#37352f]/55"
+          style={{ left: handle.left, top: handle.top }}
           onPointerDown={keepEditorFocus}
-          onClick={() => setFormatAt({ x: plus.left + 32, y: plus.top })}
         >
-          +
-        </button>
+          <button
+            type="button"
+            aria-label="ブロックを追加"
+            aria-haspopup="menu"
+            className="grid h-6 w-6 place-items-center rounded text-lg leading-none hover:bg-[#37352f]/8 hover:text-[#37352f]"
+            onClick={() => setFormatAt({ x: handle.left, y: handle.top + 28 })}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            aria-label="ブロックの操作"
+            aria-haspopup="menu"
+            className="grid h-6 w-6 place-items-center rounded hover:bg-[#37352f]/8 hover:text-[#37352f]"
+            onClick={() => setFormatAt({ x: handle.left, y: handle.top + 28 })}
+          >
+            <BlockGrip />
+          </button>
+        </div>
       ) : null}
 
       {settings.enabled && formatAt ? (
+        <button
+          type="button"
+          aria-label="ブロックメニューを閉じる"
+          className="pointer-events-auto absolute inset-0 z-20 cursor-default"
+          onPointerDown={keepEditorFocus}
+          onClick={() => setFormatAt(null)}
+        />
+      ) : null}
+      {settings.enabled && formatAt ? (
         <div
-          className="pointer-events-auto absolute z-10"
-          style={{ left: Math.min(formatAt.x, window.innerWidth - 280), top: Math.min(formatAt.y, window.innerHeight - 320) }}
+          className="pointer-events-auto absolute z-30"
+          style={{ left: Math.min(formatAt.x, window.innerWidth - 312), top: Math.min(formatAt.y, window.innerHeight - 360) }}
           onPointerDown={keepEditorFocus}
         >
           <BlockMenu onSelect={applyFormat} onClose={() => setFormatAt(null)} />
@@ -218,6 +239,19 @@ export function App() {
         </p>
       ) : null}
     </>
+  );
+}
+
+function BlockGrip() {
+  return (
+    <svg width="12" height="14" viewBox="0 0 12 14" aria-hidden="true">
+      <circle cx="3.5" cy="2.5" r="1.1" fill="currentColor" />
+      <circle cx="8.5" cy="2.5" r="1.1" fill="currentColor" />
+      <circle cx="3.5" cy="7" r="1.1" fill="currentColor" />
+      <circle cx="8.5" cy="7" r="1.1" fill="currentColor" />
+      <circle cx="3.5" cy="11.5" r="1.1" fill="currentColor" />
+      <circle cx="8.5" cy="11.5" r="1.1" fill="currentColor" />
+    </svg>
   );
 }
 

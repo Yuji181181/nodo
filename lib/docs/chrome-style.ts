@@ -5,7 +5,7 @@
  */
 export const chromeStyle = `
 html.nodo-mode .kix-appview-editor {
-  background-color: #f4f3ef !important;
+  background-color: #191919 !important;
 }
 html.nodo-mode:not(.nodo-native-tabs) .left-sidebar-container {
   opacity: 0 !important;
