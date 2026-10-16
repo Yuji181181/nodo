@@ -28,6 +28,7 @@ import { applyBlockCommand, type BlockCommand } from '../lib/docs/format';
 import { countTabs, MAX_TABS, type TabNode } from '../lib/docs/tabs';
 import { loadSettings, saveSettings, watchSettings, type NodoSettings } from '../lib/settings';
 import { BlockMenu } from './BlockMenu';
+import { Layer } from './Layer';
 import { keepEditorFocus, Sidebar } from './Sidebar';
 
 const fallbackRect = () => ({
@@ -48,6 +49,8 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [formatAt, setFormatAt] = useState<{ x: number; y: number } | null>(null);
+  const formatOpenRef = useRef(false);
+  formatOpenRef.current = formatAt !== null;
 
   useEffect(() => {
     let stop = () => {};
@@ -61,6 +64,7 @@ export function App() {
   useEffect(() => {
     if (!settings) return;
     applyDocumentChrome(settings);
+    document.querySelector('nodo-ui')?.classList.toggle('light', settings.theme === 'light');
   }, [settings]);
 
   useEffect(() => {
@@ -117,6 +121,7 @@ export function App() {
     };
     frame = window.requestAnimationFrame(tick);
     const onMove = (event: PointerEvent) => {
+      if (formatOpenRef.current) return;
       const next = readHoverLine(event.clientX, event.clientY);
       const current = hoverRef.current;
       if (current && pointerOnHandle(current, event.clientX, event.clientY, layoutRef.current.sidebarRight)) return;
@@ -182,11 +187,15 @@ export function App() {
       : null;
   const page = selectedPage(structure?.tabs ?? null);
   const pageTitle = page?.title || structure?.title || '無題';
-  const titleLift = page?.emoji ? 118 : 78;
-  const showTitle = pageFrame !== null && pageFrame.top > titleLift;
+  const titleBlock = page?.emoji ? 96 : 52;
+  const titleTop = pageFrame ? pageFrame.top - titleBlock - 16 : 0;
+  const showTitle = pageFrame !== null && titleTop >= 44 && titleTop + titleBlock < pageFrame.top - 8;
+  const titleLeft = pageFrame ? Math.max(sidebarRight + 28, pageFrame.left + 96) : 0;
+  const titleWidth = pageFrame ? Math.max(160, pageFrame.left + pageFrame.width - 72 - titleLeft) : 160;
+  const blockMenu = formatAt ? placeFloating(formatAt.x, formatAt.y, 300, 348, sidebarRight) : null;
 
   return (
-    <>
+    <Layer>
       {settings.enabled && !settings.showNativeTabs ? (
         <Sidebar
           title={structure?.title ?? ''}
@@ -195,6 +204,7 @@ export function App() {
           viewOnly={structure?.addTab === 'disabled' && (structure ? countTabs(structure.tabs) < MAX_TABS : false)}
           busy={busy}
           showChrome={settings.showChrome}
+          theme={settings.theme}
           notice={notice}
           rect={rect}
           onAddRoot={() => void run(addRootTab)}
@@ -207,13 +217,14 @@ export function App() {
           onToggle={(path) => toggleChildTabs(path)}
           onNotice={setNotice}
           onToggleChrome={() => void update({ showChrome: !settings.showChrome })}
+          onToggleTheme={() => void update({ theme: settings.theme === 'dark' ? 'light' : 'dark' })}
           onShowNativeTabs={() => void update({ showNativeTabs: true })}
           onDisable={() => void update({ enabled: false })}
         />
       ) : (
         <button
           type="button"
-          className="pointer-events-auto absolute bottom-4 left-4 rounded-full border border-[#e6e4de] bg-white px-3 py-1.5 text-sm text-[#37352f] shadow-md"
+          className="pointer-events-auto absolute bottom-4 left-4 rounded-full border border-[var(--nodo-border)] bg-[var(--nodo-menu)] px-3 py-1.5 text-sm text-[var(--nodo-fg)] shadow-md"
           onClick={() =>
             void update(settings.enabled ? { showNativeTabs: false } : { enabled: true, showNativeTabs: false })
           }
@@ -224,47 +235,53 @@ export function App() {
       )}
 
       {settings.enabled
-        ? pages.map((pageRect) => (
-            <div
-              key={`${Math.round(pageRect.top)}-${Math.round(pageRect.left)}`}
-              className="pointer-events-none absolute z-0"
-              style={{
-                left: pageRect.left - 2,
-                top: pageRect.top - 2,
-                width: pageRect.width + 4,
-                height: pageRect.height + 4,
-                boxShadow: '0 0 0 3px #ffffff, inset 0 0 0 6px #ffffff',
-              }}
-            />
-          ))
+        ? pages.map((pageRect) => {
+            const left = Math.max(pageRect.left - 2, sidebarRight);
+            const width = pageRect.left + pageRect.width + 2 - left;
+            if (width < 24) return null;
+            return (
+              <div
+                key={`${Math.round(pageRect.top)}-${Math.round(pageRect.left)}`}
+                className="pointer-events-none absolute z-0"
+                style={{
+                  left,
+                  top: pageRect.top - 2,
+                  width,
+                  height: pageRect.height + 4,
+                  boxShadow: '0 0 0 3px var(--nodo-page), inset 0 0 0 6px var(--nodo-page)',
+                }}
+              />
+            );
+          })
         : null}
       {settings.enabled
-        ? pageSeams(pages).map((seam) => (
-            <div
-              key={`seam-${Math.round(seam.top)}`}
-              className="pointer-events-none absolute z-0 bg-white"
-              style={{ left: seam.left, top: seam.top, width: seam.width, height: seam.height }}
-            />
-          ))
+        ? pageSeams(pages).map((seam) => {
+            const left = Math.max(seam.left, sidebarRight);
+            const width = seam.left + seam.width - left;
+            if (width < 8) return null;
+            return (
+              <div
+                key={`seam-${Math.round(seam.top)}`}
+                className="pointer-events-none absolute z-0"
+                style={{ left, top: seam.top, width, height: seam.height, background: 'var(--nodo-page)' }}
+              />
+            );
+          })
         : null}
 
       {settings.enabled && showTitle && pageFrame ? (
         <div
           className="pointer-events-none absolute z-10"
-          style={{
-            left: pageFrame.left + 96,
-            top: pageFrame.top - titleLift,
-            width: Math.max(240, pageFrame.width - 180),
-          }}
+          style={{ left: titleLeft, top: titleTop, width: titleWidth }}
         >
           {page?.emoji ? <p className="mb-1 text-[32px] leading-none">{page.emoji}</p> : null}
-          <p className="truncate text-[40px] leading-[1.2] font-bold tracking-[-0.02em] text-[#37352f]">{pageTitle}</p>
+          <p className="truncate text-[32px] leading-[1.25] font-bold tracking-[-0.02em] text-[var(--nodo-fg)]">{pageTitle}</p>
         </div>
       ) : null}
 
-      {settings.enabled && handle ? (
+      {settings.enabled && handle && !formatAt ? (
         <div
-          className="pointer-events-auto absolute z-20 flex items-center text-[#9b9a97]"
+          className="pointer-events-auto absolute z-20 flex items-center text-[var(--nodo-fg-soft)]"
           style={{ left: handle.left, top: handle.top }}
           onPointerDown={keepEditorFocus}
         >
@@ -272,7 +289,7 @@ export function App() {
             type="button"
             aria-label="ブロックを追加"
             aria-haspopup="menu"
-            className="grid h-6 w-6 place-items-center rounded text-lg leading-none hover:bg-[#37352f]/8 hover:text-[#37352f]"
+            className="grid h-6 w-6 place-items-center rounded text-lg leading-none hover:bg-[var(--nodo-hover)] hover:text-[var(--nodo-fg)]"
             onClick={() => {
               focusEditorLine(handle.focusX, handle.focusY);
               setFormatAt({ x: handle.left + 28, y: handle.top + 28 });
@@ -284,7 +301,7 @@ export function App() {
             type="button"
             aria-label="ブロックの操作"
             aria-haspopup="menu"
-            className="grid h-6 w-6 place-items-center rounded hover:bg-[#37352f]/8 hover:text-[#37352f]"
+            className="grid h-6 w-6 place-items-center rounded hover:bg-[var(--nodo-hover)] hover:text-[var(--nodo-fg)]"
             onClick={() => {
               focusEditorLine(handle.focusX, handle.focusY);
               setFormatAt({ x: handle.left + 28, y: handle.top + 28 });
@@ -304,10 +321,10 @@ export function App() {
           onClick={() => setFormatAt(null)}
         />
       ) : null}
-      {settings.enabled && formatAt ? (
+      {settings.enabled && blockMenu ? (
         <div
           className="pointer-events-auto absolute z-30"
-          style={{ left: Math.min(formatAt.x, window.innerWidth - 312), top: Math.min(formatAt.y, window.innerHeight - 360) }}
+          style={{ left: blockMenu.left, top: blockMenu.top }}
           onPointerDown={keepEditorFocus}
         >
           <BlockMenu onSelect={applyFormat} onClose={() => setFormatAt(null)} />
@@ -315,12 +332,20 @@ export function App() {
       ) : null}
 
       {settings.enabled && settings.showNativeTabs && notice ? (
-        <p className="pointer-events-auto absolute bottom-16 left-4 max-w-xs rounded-lg bg-white px-3 py-2 text-xs leading-5 text-[#5f5d57] shadow-md">
+        <p className="pointer-events-auto absolute bottom-16 left-4 max-w-xs rounded-lg bg-[var(--nodo-menu)] px-3 py-2 text-xs leading-5 text-[var(--nodo-fg-soft)] shadow-md">
           {notice}
         </p>
       ) : null}
-    </>
+    </Layer>
   );
+}
+
+function placeFloating(x: number, y: number, width: number, height: number, sidebarRight: number) {
+  const minLeft = sidebarRight + 12;
+  return {
+    left: Math.min(Math.max(minLeft, x), Math.max(minLeft, window.innerWidth - width - 12)),
+    top: Math.min(Math.max(44, y), Math.max(44, window.innerHeight - height - 12)),
+  };
 }
 
 function selectedPage(tabs: readonly TabNode[] | null): TabNode | null {

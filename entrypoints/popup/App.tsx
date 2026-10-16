@@ -12,6 +12,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.classList.toggle('light', settings?.theme === 'light');
+  }, [settings?.theme]);
+
+  useEffect(() => {
     void browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
       const url = tabs[0]?.url ?? '';
       setOnDocument(/^https:\/\/docs\.google\.com\/document\/(?:u\/\d+\/)?d\//.test(url));
@@ -26,14 +30,14 @@ export function App() {
   }
 
   return (
-    <main className="w-80 bg-[#f7f6f3] p-4 text-[#37352f]">
-      <p className="text-xs font-medium tracking-wide text-[#8b897f]">Google ドキュメント</p>
+    <main className="w-80 bg-[var(--nodo-sidebar)] p-4 text-[var(--nodo-fg)]">
+      <p className="text-xs font-medium tracking-wide text-[var(--nodo-fg-faint)]">Google ドキュメント</p>
       <h1 className="mt-1 text-lg font-semibold">Nodo</h1>
-      <p className="mt-2 text-sm leading-6 text-[#5f5d57]">
+      <p className="mt-2 text-sm leading-6 text-[var(--nodo-fg-soft)]">
         タブをページの一覧として扱い、段落の書式をカーソル位置へ送ります。文書は Google ドキュメントのままです。
       </p>
       {onDocument === false ? (
-        <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs leading-5 text-[#5f5d57]">
+        <p className="mt-3 rounded-lg bg-[var(--nodo-menu)] px-3 py-2 text-xs leading-5 text-[var(--nodo-fg-soft)]">
           開いているタブは文書の編集画面ではありません。docs.google.com の文書を開いてください。
         </p>
       ) : null}
@@ -43,6 +47,11 @@ export function App() {
             label="Nodoを使う"
             pressed={settings.enabled}
             onClick={() => void update({ enabled: !settings.enabled })}
+          />
+          <Toggle
+            label="ダークモード"
+            pressed={settings.theme === 'dark'}
+            onClick={() => void update({ theme: settings.theme === 'dark' ? 'light' : 'dark' })}
           />
           <Toggle
             label="Googleのメニュー"
@@ -56,9 +65,9 @@ export function App() {
           />
         </div>
       ) : (
-        <p className="mt-4 text-sm text-[#8b897f]">設定を読み込んでいます</p>
+        <p className="mt-4 text-sm text-[var(--nodo-fg-faint)]">設定を読み込んでいます</p>
       )}
-      <p className="mt-4 text-xs leading-5 text-[#8b897f]">
+      <p className="mt-4 text-xs leading-5 text-[var(--nodo-fg-faint)]">
         切り替えのショートカットは Ctrl+Shift+Period です。標準表示に戻しても、文書の中身は変わりません。
       </p>
     </main>
@@ -78,11 +87,11 @@ function Toggle({
     <button
       type="button"
       aria-pressed={pressed}
-      className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-left text-sm shadow-sm"
+      className="flex items-center justify-between rounded-lg bg-[var(--nodo-menu)] px-3 py-2 text-left text-sm text-[var(--nodo-fg)] shadow-sm"
       onClick={onClick}
     >
       {label}
-      <span className={`rounded-full px-2 py-0.5 text-xs ${pressed ? 'bg-[#37352f] text-white' : 'bg-[#efeee9] text-[#5f5d57]'}`}>
+      <span className={`rounded-full px-2 py-0.5 text-xs ${pressed ? 'bg-[var(--nodo-fg)] text-[var(--nodo-sidebar)]' : 'bg-[var(--nodo-chip)] text-[var(--nodo-fg-soft)]'}`}>
         {pressed ? 'オン' : 'オフ'}
       </span>
     </button>

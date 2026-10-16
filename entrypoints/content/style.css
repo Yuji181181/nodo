@@ -13,9 +13,50 @@
   --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
 }
 
+:root,
 :host {
+  --nodo-fg: rgba(255, 255, 255, 0.9);
+  --nodo-fg-soft: rgba(255, 255, 255, 0.62);
+  --nodo-fg-faint: rgba(255, 255, 255, 0.45);
+  --nodo-sidebar: #202020;
+  --nodo-border: rgba(255, 255, 255, 0.08);
+  --nodo-hover: rgba(255, 255, 255, 0.06);
+  --nodo-selected: rgba(255, 255, 255, 0.1);
+  --nodo-menu: #252525;
+  --nodo-input: #191919;
+  --nodo-danger: #ff7369;
+  --nodo-danger-bg: #3a2424;
+  --nodo-danger-fg: #f0c9c6;
+  --nodo-chip: rgba(255, 255, 255, 0.08);
+  --nodo-icon: rgba(255, 255, 255, 0.8);
+  --nodo-page: #191919;
+  --nodo-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: var(--nodo-fg);
   font-family: var(--font-sans);
-  color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   line-height: 20px;
+  background: var(--nodo-sidebar);
+}
+
+:root.light,
+:host(.light),
+.light {
+  --nodo-fg: #37352f;
+  --nodo-fg-soft: rgba(55, 53, 47, 0.65);
+  --nodo-fg-faint: rgba(55, 53, 47, 0.45);
+  --nodo-sidebar: #f7f6f3;
+  --nodo-border: rgba(55, 53, 47, 0.09);
+  --nodo-hover: rgba(55, 53, 47, 0.06);
+  --nodo-selected: rgba(55, 53, 47, 0.1);
+  --nodo-menu: #ffffff;
+  --nodo-input: #ffffff;
+  --nodo-danger: #c4554d;
+  --nodo-danger-bg: #fdecec;
+  --nodo-danger-fg: #9f2f2f;
+  --nodo-chip: #ebeae4;
+  --nodo-icon: #37352f;
+  --nodo-page: #ffffff;
+  --nodo-shadow: 0 12px 32px rgba(15, 15, 15, 0.12);
+  color: var(--nodo-fg);
+  background: var(--nodo-sidebar);
 }

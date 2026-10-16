@@ -116,6 +116,9 @@ describe('page chrome stylesheet', () => {
     expect(chromeStyle).toContain('background: #ffffff');
     expect(chromeStyle).toContain('.kix-page-paginated');
     expect(chromeStyle).toContain('box-shadow: none');
+    expect(chromeStyle).toContain('html.nodo-mode.nodo-dark');
+    expect(chromeStyle).toContain('background: #191919');
+    expect(chromeStyle).toContain('invert(0.902)');
     expect(chromeStyle).not.toContain('@import');
     expect(chromeStyle).not.toContain('preflight');
     expect(chromeStyle).not.toContain('kix-canvas');

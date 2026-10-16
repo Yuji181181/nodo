@@ -18,16 +18,16 @@ export function BlockMenu({ onSelect, onClose }: BlockMenuProps) {
     <div
       role="menu"
       aria-label="基本ブロック"
-      className="w-[300px] overflow-hidden rounded-[10px] border border-white/10 bg-[#252525] text-white/90 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+      className="w-[300px] overflow-hidden rounded-[10px] border border-[var(--nodo-border)] bg-[var(--nodo-menu)] text-[var(--nodo-fg)] shadow-[var(--nodo-shadow)]"
     >
-      <div className="border-b border-white/10 px-2 py-2">
+      <div className="border-b border-[var(--nodo-border)] px-2 py-2">
         <input
           data-allow-focus="true"
           value={query}
           autoFocus
           placeholder="ブロックを検索"
           aria-label="ブロックを検索"
-          className="w-full bg-transparent px-1 text-sm text-white outline-none placeholder:text-white/35"
+          className="w-full bg-transparent px-1 text-sm text-[var(--nodo-fg)] outline-none placeholder:text-[var(--nodo-fg-faint)]"
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Escape') onClose();
@@ -40,16 +40,16 @@ export function BlockMenu({ onSelect, onClose }: BlockMenuProps) {
         />
       </div>
       <div className="max-h-80 overflow-y-auto p-1">
-        <p className="px-2 pt-1.5 pb-1 text-xs text-white/40">基本ブロック</p>
+        <p className="px-2 pt-1.5 pb-1 text-xs text-[var(--nodo-fg-faint)]">基本ブロック</p>
         {commands.length === 0 ? (
-          <p className="px-2 py-3 text-sm text-white/40">該当するブロックはありません</p>
+          <p className="px-2 py-3 text-sm text-[var(--nodo-fg-faint)]">該当するブロックはありません</p>
         ) : (
           commands.map((command) => (
             <button
               key={command.id}
               type="button"
               role="menuitem"
-              className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-white/8"
+              className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-[var(--nodo-hover)]"
               onClick={() => {
                 onSelect(command);
                 onClose();
@@ -58,7 +58,7 @@ export function BlockMenu({ onSelect, onClose }: BlockMenuProps) {
               <BlockIcon id={command.id} />
               <span className="min-w-0">
                 <span className="block text-sm">{command.label}</span>
-                <span className="block truncate text-xs text-white/40">{command.description}</span>
+                <span className="block truncate text-xs text-[var(--nodo-fg-faint)]">{command.description}</span>
               </span>
             </button>
           ))
@@ -70,7 +70,7 @@ export function BlockMenu({ onSelect, onClose }: BlockMenuProps) {
 
 function BlockIcon({ id }: { id: BlockCommand['id'] }) {
   return (
-    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white/6 text-[11px] text-white/80">
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-[var(--nodo-chip)] text-[11px] text-[var(--nodo-icon)]">
       {glyph(id)}
     </span>
   );

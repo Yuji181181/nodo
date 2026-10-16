@@ -85,13 +85,12 @@ export function readHoverLine(x: number, y: number, doc: Document = document): H
   });
   if (!page) return null;
   const rect = page.getBoundingClientRect();
-  const line = 32;
-  const snapped = rect.top + Math.floor(Math.max(0, y - rect.top) / line) * line + 4;
+  const top = Math.min(Math.max(rect.top + 4, y - 12), rect.bottom - 28);
   return {
-    left: rect.left + 52,
-    top: Math.min(snapped, rect.bottom - 28),
+    left: rect.left + 24,
+    top,
     focusX: rect.left + Math.min(220, rect.width * 0.35),
-    focusY: Math.min(snapped + 16, rect.bottom - 8),
+    focusY: Math.min(Math.max(rect.top + 8, y), rect.bottom - 8),
   };
 }
 

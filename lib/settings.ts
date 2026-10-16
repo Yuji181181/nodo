@@ -1,15 +1,19 @@
 import { browser } from 'wxt/browser';
 
+export type NodoTheme = 'light' | 'dark';
+
 export interface NodoSettings {
   enabled: boolean;
   showChrome: boolean;
   showNativeTabs: boolean;
+  theme: NodoTheme;
 }
 
 export const defaultSettings: NodoSettings = {
   enabled: true,
   showChrome: false,
   showNativeTabs: false,
+  theme: 'dark',
 };
 
 const storageKey = 'nodo-settings';
@@ -43,5 +47,6 @@ function normalizeSettings(value: unknown): NodoSettings {
     showChrome: typeof record.showChrome === 'boolean' ? record.showChrome : defaultSettings.showChrome,
     showNativeTabs:
       typeof record.showNativeTabs === 'boolean' ? record.showNativeTabs : defaultSettings.showNativeTabs,
+    theme: record.theme === 'light' || record.theme === 'dark' ? record.theme : defaultSettings.theme,
   };
 }

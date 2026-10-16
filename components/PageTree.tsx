@@ -1,6 +1,8 @@
 import { useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { explainFailure } from '../lib/docs/messages';
 import { canNestUnder, findTab, type TabNode } from '../lib/docs/tabs';
+import { useLayer } from './Layer';
 
 interface PageTreeProps {
   tabs: TabNode[];
@@ -37,6 +39,7 @@ function PageRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(node.title);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const layer = useLayer();
 
   function commitRename() {
     const title = draft.trim();
@@ -72,8 +75,8 @@ function PageRow({
         aria-level={depth + 1}
         aria-expanded={node.childToggle === 'none' ? undefined : node.childToggle === 'expanded'}
         draggable={!editing}
-        className={`group flex h-[30px] items-center rounded pr-1 text-sm text-white/90 ${
-          node.selected ? 'bg-white/10' : 'hover:bg-white/6'
+        className={`group flex h-[30px] items-center rounded pr-1 text-sm text-[var(--nodo-fg)] ${
+          node.selected ? 'bg-[var(--nodo-selected)]' : 'hover:bg-[var(--nodo-hover)]'
         }`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -101,7 +104,7 @@ function PageRow({
         ) : (
           <button
             type="button"
-            className="grid h-5 w-4 shrink-0 place-items-center rounded text-white/45 hover:bg-white/10"
+            className="grid h-5 w-4 shrink-0 place-items-center rounded text-[var(--nodo-fg-faint)] hover:bg-[var(--nodo-hover)]"
             aria-label={node.childToggle === 'expanded' ? '子ページを閉じる' : '子ページを開く'}
             onClick={() => props.onToggle(node.path)}
           >
@@ -111,7 +114,7 @@ function PageRow({
         {editing ? (
           <input
             data-allow-focus="true"
-            className="min-w-0 flex-1 rounded bg-[#191919] px-1 py-0.5 text-sm text-white outline-none"
+            className="min-w-0 flex-1 rounded bg-[var(--nodo-input)] px-1 py-0.5 text-sm text-[var(--nodo-fg)] outline-none"
             value={draft}
             aria-label="ページ名"
             autoFocus
@@ -142,12 +145,12 @@ function PageRow({
             <span className="truncate">{node.title}</span>
           </button>
         )}
-        <span className={`flex shrink-0 items-center text-white/85 ${menuAt || hovered || node.selected ? 'opacity-100' : 'opacity-0'}`}>
+        <span className={`flex shrink-0 items-center text-[var(--nodo-fg-soft)] ${menuAt || hovered || node.selected ? 'opacity-100' : 'opacity-0'}`}>
           <button
             type="button"
             aria-label={`${node.title}の子ページを追加`}
             disabled={!canNestUnder(node.level) || props.busy}
-            className="grid h-6 w-6 place-items-center rounded hover:bg-white/10 disabled:text-white/25"
+            className="grid h-6 w-6 place-items-center rounded hover:bg-[var(--nodo-hover)] disabled:text-[var(--nodo-fg-faint)]"
             onClick={() => props.onAddChild(node.path)}
           >
             <PlusMark />
@@ -156,38 +159,46 @@ function PageRow({
             type="button"
             aria-label={`${node.title}の操作`}
             aria-expanded={menuAt !== null}
-            className="grid h-6 w-6 place-items-center rounded text-sm hover:bg-white/10"
+            className="grid h-6 w-6 place-items-center rounded text-sm hover:bg-[var(--nodo-hover)]"
             onClick={(event) => {
               const box = event.currentTarget.getBoundingClientRect();
-              setMenuAt((current) => (current ? null : { x: box.right - 180, y: box.bottom + 4 }));
+              const width = 176;
+              const height = 228;
+              const left = Math.min(Math.max(8, box.right - width), window.innerWidth - width - 8);
+              const top = Math.min(Math.max(8, box.bottom + 4), Math.max(8, window.innerHeight - height - 8));
+              setMenuAt((current) => (current ? null : { x: left, y: top }));
             }}
           >
             ···
           </button>
         </span>
-        {menuAt ? (
-          <div
-            role="menu"
-            className="fixed z-30 w-44 rounded-md border border-white/10 bg-[#252525] p-1 text-sm text-white/90 shadow-xl"
-            style={{ left: Math.max(8, menuAt.x), top: menuAt.y }}
-          >
-            <MenuButton label="名前を変更" onClick={() => { setMenuAt(null); setDraft(node.title); setEditing(true); }} />
-            <MenuButton label="子ページを追加" disabled={!canNestUnder(node.level) || props.busy} onClick={() => { setMenuAt(null); props.onAddChild(node.path); }} />
-            <MenuButton label="上に移動" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, -1); }} />
-            <MenuButton label="下に移動" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, 1); }} />
-            <MenuButton label="複製" disabled={props.busy} onClick={() => { setMenuAt(null); props.onDuplicate(node.path); }} />
-            <MenuButton label="削除" danger disabled={props.busy} onClick={() => { setMenuAt(null); setConfirmingDelete(true); }} />
-          </div>
-        ) : null}
+        {menuAt && layer
+          ? createPortal(
+              <div
+                role="menu"
+                className="pointer-events-auto fixed z-30 w-44 rounded-md border border-[var(--nodo-border)] bg-[var(--nodo-menu)] p-1 text-sm text-[var(--nodo-fg)] shadow-xl"
+                style={{ left: menuAt.x, top: menuAt.y }}
+                onPointerDown={(event) => event.preventDefault()}
+              >
+                <MenuButton label="名前を変更" onClick={() => { setMenuAt(null); setDraft(node.title); setEditing(true); }} />
+                <MenuButton label="子ページを追加" disabled={!canNestUnder(node.level) || props.busy} onClick={() => { setMenuAt(null); props.onAddChild(node.path); }} />
+                <MenuButton label="上に移動" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, -1); }} />
+                <MenuButton label="下に移動" disabled={props.busy} onClick={() => { setMenuAt(null); props.onMove(node.path, 1); }} />
+                <MenuButton label="複製" disabled={props.busy} onClick={() => { setMenuAt(null); props.onDuplicate(node.path); }} />
+                <MenuButton label="削除" danger disabled={props.busy} onClick={() => { setMenuAt(null); setConfirmingDelete(true); }} />
+              </div>,
+              layer,
+            )
+          : null}
       </div>
       {confirmingDelete ? (
-        <div className="mx-2 my-1 rounded-md bg-[#3a2424] p-2 text-xs text-[#f0c9c6]">
+        <div className="mx-2 my-1 rounded-md bg-[var(--nodo-danger-bg)] p-2 text-xs text-[var(--nodo-danger-fg)]">
           <p>「{node.title}」を削除します。</p>
           <div className="mt-2 flex gap-2">
-            <button type="button" className="rounded bg-[#c4554d] px-2 py-1 text-white" onClick={() => { setConfirmingDelete(false); props.onDelete(node.path); }}>
+            <button type="button" className="rounded bg-[var(--nodo-danger)] px-2 py-1 text-white" onClick={() => { setConfirmingDelete(false); props.onDelete(node.path); }}>
               削除
             </button>
-            <button type="button" className="rounded px-2 py-1 text-white/70" onClick={() => setConfirmingDelete(false)}>
+            <button type="button" className="rounded px-2 py-1 text-[var(--nodo-fg-soft)]" onClick={() => setConfirmingDelete(false)}>
               キャンセル
             </button>
           </div>
@@ -218,8 +229,8 @@ function MenuButton({
       type="button"
       role="menuitem"
       disabled={disabled}
-      className={`block w-full rounded px-2 py-1.5 text-left hover:bg-white/8 disabled:cursor-not-allowed disabled:text-white/25 ${
-        danger ? 'text-[#ff7369]' : ''
+      className={`block w-full rounded px-2 py-1.5 text-left hover:bg-[var(--nodo-hover)] disabled:cursor-not-allowed disabled:text-[var(--nodo-fg-faint)] ${
+        danger ? 'text-[var(--nodo-danger)]' : ''
       }`}
       onClick={onClick}
     >
@@ -239,7 +250,7 @@ function PlusMark() {
 function PageIcon({ emoji }: { emoji: string }) {
   if (emoji) return <span className="w-4 shrink-0 text-center text-xs">{emoji}</span>;
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0 text-white/55">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0 text-[var(--nodo-fg-faint)]">
       <path
         d="M4 2.5 H9.2 L12 5.3 V13.5 H4 Z"
         fill="none"
