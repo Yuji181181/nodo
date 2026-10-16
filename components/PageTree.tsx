@@ -33,6 +33,7 @@ function PageRow({
   ...props
 }: PageTreeProps & { node: TabNode; depth: number; dragPath: RefObject<string | null> }) {
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(node.title);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -74,6 +75,8 @@ function PageRow({
         className={`group flex h-[30px] items-center rounded pr-1 text-sm text-white/90 ${
           node.selected ? 'bg-white/10' : 'hover:bg-white/6'
         }`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{ paddingLeft: 4 + depth * 14 }}
         onDragStart={(event) => {
           dragPath.current = node.path;
@@ -139,12 +142,12 @@ function PageRow({
             <span className="truncate">{node.title}</span>
           </button>
         )}
-        <span className={`flex shrink-0 items-center ${menuAt ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}>
+        <span className={`flex shrink-0 items-center text-white/85 ${menuAt || hovered || node.selected ? 'opacity-100' : 'opacity-0'}`}>
           <button
             type="button"
             aria-label={`${node.title}の子ページを追加`}
             disabled={!canNestUnder(node.level) || props.busy}
-            className="grid h-5 w-5 place-items-center rounded text-white/55 hover:bg-white/10 disabled:text-white/20"
+            className="grid h-6 w-6 place-items-center rounded hover:bg-white/10 disabled:text-white/25"
             onClick={() => props.onAddChild(node.path)}
           >
             <PlusMark />
@@ -153,7 +156,7 @@ function PageRow({
             type="button"
             aria-label={`${node.title}の操作`}
             aria-expanded={menuAt !== null}
-            className="grid h-5 w-5 place-items-center rounded text-sm text-white/55 hover:bg-white/10"
+            className="grid h-6 w-6 place-items-center rounded text-sm hover:bg-white/10"
             onClick={(event) => {
               const box = event.currentTarget.getBoundingClientRect();
               setMenuAt((current) => (current ? null : { x: box.right - 180, y: box.bottom + 4 }));

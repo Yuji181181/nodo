@@ -49,7 +49,7 @@ export function Sidebar(props: SidebarProps) {
           type="button"
           aria-label="表示の設定"
           aria-expanded={options}
-          className="grid h-6 w-6 shrink-0 place-items-center rounded text-white/50 hover:bg-white/8 hover:text-white/80"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded text-base text-white/80 hover:bg-white/10"
           onClick={() => setOptions((open) => !open)}
         >
           ···
