@@ -229,11 +229,11 @@ export function App() {
               key={`${Math.round(pageRect.top)}-${Math.round(pageRect.left)}`}
               className="pointer-events-none absolute z-0"
               style={{
-                left: pageRect.left,
-                top: pageRect.top,
-                width: pageRect.width,
-                height: pageRect.height,
-                boxShadow: 'inset 0 0 0 4px #ffffff',
+                left: pageRect.left - 2,
+                top: pageRect.top - 2,
+                width: pageRect.width + 4,
+                height: pageRect.height + 4,
+                boxShadow: '0 0 0 3px #ffffff, inset 0 0 0 6px #ffffff',
               }}
             />
           ))

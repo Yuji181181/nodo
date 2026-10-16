@@ -34,6 +34,9 @@ export default defineContentScript({
       ],
       onMount(container) {
         container.style.pointerEvents = 'none';
+        // 2026-10-16 の編集画面: キャンバスは 22、キャレットは 27、元のサイドバーは 100、メニューはそれ以上。
+        // 50 なら行の操作と紙の縁が本文の上に出て、Google のメニューは隠れない。
+        container.style.zIndex = '50';
         const root = createRoot(container);
         root.render(<App />);
         return root;
