@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { parseHTML } from 'linkedom';
+import { pageSeams } from '../lib/docs/caret';
 import { chromeStyle } from '../lib/docs/chrome-style';
 import { blockCommands, commandById, keyboardInit } from '../lib/docs/format';
 import { matchesLabel, menuItemLabel, menuLabels } from '../lib/docs/labels';
@@ -111,9 +112,28 @@ describe('formatting shortcuts', () => {
 describe('page chrome stylesheet', () => {
   test('stays limited to the Nodo mode and does not restyle the canvas', () => {
     expect(chromeStyle).toContain('html.nodo-mode');
+    expect(chromeStyle).toContain('#docs-editor');
+    expect(chromeStyle).toContain('background: #ffffff');
+    expect(chromeStyle).toContain('.kix-page-paginated');
+    expect(chromeStyle).toContain('box-shadow: none');
     expect(chromeStyle).not.toContain('@import');
     expect(chromeStyle).not.toContain('preflight');
     expect(chromeStyle).not.toContain('kix-canvas');
     expect(chromeStyle).not.toContain('pageless');
+  });
+
+  test('covers only the seam between stacked pages', () => {
+    expect(
+      pageSeams([
+        { left: 100, top: 80, width: 800, height: 1000 },
+        { left: 100, top: 1090, width: 800, height: 1000 },
+      ]),
+    ).toEqual([{ left: 100, top: 1076, width: 800, height: 18 }]);
+    expect(
+      pageSeams([
+        { left: 0, top: 0, width: 800, height: 400 },
+        { left: 0, top: 900, width: 800, height: 400 },
+      ]),
+    ).toEqual([]);
   });
 });

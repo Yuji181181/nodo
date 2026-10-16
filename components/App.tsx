@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   addChildTab,
   addRootTab,
@@ -13,10 +13,19 @@ import {
   toggleChildTabs,
   type StructureState,
 } from '../lib/docs/actions';
-import { readCaretAnchor, type CaretAnchor } from '../lib/docs/caret';
+import {
+  focusEditorLine,
+  pageSeams,
+  readCaretAnchor,
+  readHoverLine,
+  readVisiblePages,
+  type CaretAnchor,
+  type HoverLine,
+  type PageFrame,
+} from '../lib/docs/caret';
 import { applyDocumentChrome } from '../lib/docs/chrome-style';
 import { applyBlockCommand, type BlockCommand } from '../lib/docs/format';
-import { countTabs, MAX_TABS } from '../lib/docs/tabs';
+import { countTabs, MAX_TABS, type TabNode } from '../lib/docs/tabs';
 import { loadSettings, saveSettings, watchSettings, type NodoSettings } from '../lib/settings';
 import { BlockMenu } from './BlockMenu';
 import { keepEditorFocus, Sidebar } from './Sidebar';
@@ -33,6 +42,9 @@ export function App() {
   const [structure, setStructure] = useState<StructureState | null>(null);
   const [rect, setRect] = useState(fallbackRect);
   const [caret, setCaret] = useState<CaretAnchor | null>(null);
+  const [pages, setPages] = useState<PageFrame[]>([]);
+  const [hoverLine, setHoverLine] = useState<HoverLine | null>(null);
+  const layoutRef = useRef({ sidebarRight: 0 });
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [formatAt, setFormatAt] = useState<{ x: number; y: number } | null>(null);
@@ -95,13 +107,28 @@ export function App() {
   useEffect(() => {
     if (!settings?.enabled) return;
     let frame = 0;
+    const hoverRef: { current: HoverLine | null } = { current: null };
     const tick = () => {
       const next = readCaretAnchor();
       setCaret((current) => (sameCaret(current, next) ? current : next));
+      const nextPages = readVisiblePages();
+      setPages((current) => (samePages(current, nextPages) ? current : nextPages));
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
+    const onMove = (event: PointerEvent) => {
+      const next = readHoverLine(event.clientX, event.clientY);
+      const current = hoverRef.current;
+      if (current && pointerOnHandle(current, event.clientX, event.clientY, layoutRef.current.sidebarRight)) return;
+      if (sameHover(current, next)) return;
+      hoverRef.current = next;
+      setHoverLine(next);
+    };
+    window.addEventListener('pointermove', onMove);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', onMove);
+    };
   }, [settings?.enabled]);
 
   useEffect(() => {
@@ -141,13 +168,22 @@ export function App() {
   }
 
   const sidebarRight = rect.left + rect.width;
-  const handle =
-    caret === null
-      ? null
-      : {
-          left: Math.min(Math.max(sidebarRight + 4, caret.pageLeft - 54), window.innerWidth - 60),
-          top: Math.min(Math.max(8, caret.y + caret.height / 2 - 12), window.innerHeight - 28),
-        };
+  layoutRef.current.sidebarRight = sidebarRight;
+  const pageFrame = pages[0] ?? null;
+  const handle = hoverLine
+    ? { left: Math.max(sidebarRight + 8, hoverLine.left), top: hoverLine.top, focusX: hoverLine.focusX, focusY: hoverLine.focusY }
+    : caret
+      ? {
+          left: Math.max(sidebarRight + 8, caret.pageLeft + 52),
+          top: caret.y,
+          focusX: caret.x + 8,
+          focusY: caret.y + caret.height / 2,
+        }
+      : null;
+  const page = selectedPage(structure?.tabs ?? null);
+  const pageTitle = page?.title || structure?.title || '無題';
+  const titleLift = page?.emoji ? 118 : 78;
+  const showTitle = pageFrame !== null && pageFrame.top > titleLift;
 
   return (
     <>
@@ -187,9 +223,48 @@ export function App() {
         </button>
       )}
 
+      {settings.enabled
+        ? pages.map((pageRect) => (
+            <div
+              key={`${Math.round(pageRect.top)}-${Math.round(pageRect.left)}`}
+              className="pointer-events-none absolute z-0"
+              style={{
+                left: pageRect.left,
+                top: pageRect.top,
+                width: pageRect.width,
+                height: pageRect.height,
+                boxShadow: 'inset 0 0 0 4px #ffffff',
+              }}
+            />
+          ))
+        : null}
+      {settings.enabled
+        ? pageSeams(pages).map((seam) => (
+            <div
+              key={`seam-${Math.round(seam.top)}`}
+              className="pointer-events-none absolute z-0 bg-white"
+              style={{ left: seam.left, top: seam.top, width: seam.width, height: seam.height }}
+            />
+          ))
+        : null}
+
+      {settings.enabled && showTitle && pageFrame ? (
+        <div
+          className="pointer-events-none absolute z-10"
+          style={{
+            left: pageFrame.left + 96,
+            top: pageFrame.top - titleLift,
+            width: Math.max(240, pageFrame.width - 180),
+          }}
+        >
+          {page?.emoji ? <p className="mb-1 text-[32px] leading-none">{page.emoji}</p> : null}
+          <p className="truncate text-[40px] leading-[1.2] font-bold tracking-[-0.02em] text-[#37352f]">{pageTitle}</p>
+        </div>
+      ) : null}
+
       {settings.enabled && handle ? (
         <div
-          className="pointer-events-auto absolute z-20 flex items-center text-[#37352f]/55"
+          className="pointer-events-auto absolute z-20 flex items-center text-[#9b9a97]"
           style={{ left: handle.left, top: handle.top }}
           onPointerDown={keepEditorFocus}
         >
@@ -198,7 +273,10 @@ export function App() {
             aria-label="ブロックを追加"
             aria-haspopup="menu"
             className="grid h-6 w-6 place-items-center rounded text-lg leading-none hover:bg-[#37352f]/8 hover:text-[#37352f]"
-            onClick={() => setFormatAt({ x: handle.left, y: handle.top + 28 })}
+            onClick={() => {
+              focusEditorLine(handle.focusX, handle.focusY);
+              setFormatAt({ x: handle.left + 28, y: handle.top + 28 });
+            }}
           >
             +
           </button>
@@ -207,7 +285,10 @@ export function App() {
             aria-label="ブロックの操作"
             aria-haspopup="menu"
             className="grid h-6 w-6 place-items-center rounded hover:bg-[#37352f]/8 hover:text-[#37352f]"
-            onClick={() => setFormatAt({ x: handle.left, y: handle.top + 28 })}
+            onClick={() => {
+              focusEditorLine(handle.focusX, handle.focusY);
+              setFormatAt({ x: handle.left + 28, y: handle.top + 28 });
+            }}
           >
             <BlockGrip />
           </button>
@@ -240,6 +321,42 @@ export function App() {
       ) : null}
     </>
   );
+}
+
+function selectedPage(tabs: readonly TabNode[] | null): TabNode | null {
+  if (!tabs) return null;
+  for (const tab of tabs) {
+    if (tab.selected) return tab;
+    const child = selectedPage(tab.children);
+    if (child) return child;
+  }
+  return null;
+}
+
+function pointerOnHandle(line: HoverLine, x: number, y: number, sidebarRight: number): boolean {
+  const left = Math.max(sidebarRight + 8, line.left);
+  return x >= left - 8 && x <= left + 64 && y >= line.top - 8 && y <= line.top + 32;
+}
+
+function samePages(current: readonly PageFrame[], next: readonly PageFrame[]): boolean {
+  if (current.length !== next.length) return false;
+  return current.every((page, index) => sameFrame(page, next[index] ?? null));
+}
+
+function sameFrame(current: PageFrame | null, next: PageFrame | null): boolean {
+  if (current === next) return true;
+  if (!current || !next) return false;
+  return (
+    Math.round(current.left) === Math.round(next.left) &&
+    Math.round(current.top) === Math.round(next.top) &&
+    Math.round(current.width) === Math.round(next.width)
+  );
+}
+
+function sameHover(current: HoverLine | null, next: HoverLine | null): boolean {
+  if (current === next) return true;
+  if (!current || !next) return false;
+  return Math.round(current.left) === Math.round(next.left) && Math.round(current.top) === Math.round(next.top);
 }
 
 function BlockGrip() {

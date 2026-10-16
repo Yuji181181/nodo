@@ -1,11 +1,32 @@
 /**
  * ページへ注入するスタイル。Tailwind も Preflight も含めない。
- * 文書のページ設定（ページレス、余白、用紙）は変えない。キャンバスも触らない。
+ * 文書のページ設定（ページレス、余白、用紙）は変えない。キャンバスの画素も塗らない。
+ * 編集面を一続きの白い面に見せ、見出し用の余白を足すだけ。
  * セレクタは lib/docs/selectors.ts と同じく、Google の画面構造に依存する。
  */
 export const chromeStyle = `
+html.nodo-mode,
+html.nodo-mode body,
+html.nodo-mode #docs-editor,
+html.nodo-mode #docs-editor-container,
+html.nodo-mode .kix-appview-editor,
+html.nodo-mode #docs-header,
+html.nodo-mode #docs-header-container {
+  background: #ffffff !important;
+}
 html.nodo-mode .kix-appview-editor {
-  background-color: #191919 !important;
+  padding-top: 108px !important;
+}
+html.nodo-mode .kix-page-paginated {
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+html.nodo-mode #docs-branding-container {
+  display: none !important;
+}
+html.nodo-mode #docs-title-input-label-inner {
+  color: #37352f !important;
+  font-weight: 600 !important;
 }
 html.nodo-mode:not(.nodo-native-tabs) .left-sidebar-container {
   opacity: 0 !important;
